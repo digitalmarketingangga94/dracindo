@@ -96,20 +96,40 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onBack }) => {
     if (!error) window.location.href = '/';
   };
 
+  const updateSitemapFile = async (keywords: string[]) => {
+    try {
+      await fetch('/api/sitemap/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords })
+      });
+    } catch (e) {
+      console.error('Failed to sync sitemap file:', e);
+    }
+  };
+
   const saveToSitemap = async () => {
+    if (!injectedKeywordsText.trim()) return;
     setIsUpdatingSitemap(true);
-    const keywordsList = injectedKeywordsText
+    const newKeywords = injectedKeywordsText
       .split(/[\n,]/)
       .map(k => k.trim())
       .filter(k => k.length > 0);
+    
+    const keywordsList = Array.from(new Set([...injectedKeywords, ...newKeywords]));
+    
     try {
       const { error } = await supabase
         .from('site_settings')
         .upsert({ key: 'active_keywords', value: JSON.stringify(keywordsList) }, { onConflict: 'key' });
+      
       if (error) throw error;
+      
+      await updateSitemapFile(keywordsList);
+      
       setInjectedKeywords(keywordsList);
       setInjectedKeywordsText('');
-      alert(`${keywordsList.length} keyword berhasil diinjeksi ke sitemap!`);
+      alert(`${newKeywords.length} keyword berhasil ditambahkan ke sitemap!`);
     } catch (error) {
       console.error(error);
       alert('Gagal menyimpan keyword');
@@ -123,8 +143,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onBack }) => {
     const { error } = await supabase
       .from('site_settings')
       .upsert({ key: 'active_keywords', value: JSON.stringify(updated) }, { onConflict: 'key' });
-    if (!error) setInjectedKeywords(updated);
-    else alert('Gagal menghapus keyword');
+    if (!error) {
+      await updateSitemapFile(updated);
+      setInjectedKeywords(updated);
+    } else {
+      alert('Gagal menghapus keyword');
+    }
   };
 
   const clearAllKeywords = async () => {
@@ -133,6 +157,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onBack }) => {
       .from('site_settings')
       .upsert({ key: 'active_keywords', value: '[]' }, { onConflict: 'key' });
     if (!error) {
+      await updateSitemapFile([]);
       setInjectedKeywords([]);
       alert('Semua keyword berhasil dihapus.');
     } else {
