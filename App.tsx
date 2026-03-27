@@ -191,36 +191,40 @@ const App: React.FC = () => {
     setIsAppLoading(true);
     try {
       const currentPath = window.location.pathname;
-      const [analyticsData, scriptsData] = await Promise.all([
-        supabase.from('page_analytics').select('*').eq('path', currentPath).single(),
-        supabase.from('site_settings').select('value').eq('key', 'header_scripts').single()
-      ]);
       
-      if (analyticsData.data) {
-        await supabase.from('page_analytics').update({ view_count: analyticsData.data.view_count + 1 }).eq('path', currentPath);
-      } else {
-        await supabase.from('page_analytics').insert({ path: currentPath, view_count: 1 });
-      }
+      // Only attempt Supabase calls if configured
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        const [analyticsData, scriptsData] = await Promise.all([
+          supabase.from('page_analytics').select('*').eq('path', currentPath).single(),
+          supabase.from('site_settings').select('value').eq('key', 'header_scripts').single()
+        ]);
+        
+        if (analyticsData.data) {
+          await supabase.from('page_analytics').update({ view_count: analyticsData.data.view_count + 1 }).eq('path', currentPath);
+        } else {
+          await supabase.from('page_analytics').insert({ path: currentPath, view_count: 1 });
+        }
 
-      if (scriptsData.data?.value) {
-        const scriptId = 'injected-header-scripts';
-        if (!document.getElementById(scriptId)) {
-          const container = document.createElement('div');
-          container.id = scriptId;
-          container.style.display = 'none';
-          container.innerHTML = scriptsData.data.value;
-          
-          Array.from(container.childNodes).forEach(node => {
-            if (node.nodeName === 'SCRIPT') {
-              const s = document.createElement('script');
-              const oldS = node as HTMLScriptElement;
-              Array.from(oldS.attributes).forEach(attr => s.setAttribute(attr.name, attr.value));
-              s.innerHTML = oldS.innerHTML;
-              document.head.appendChild(s);
-            } else {
-              document.head.appendChild(node);
-            }
-          });
+        if (scriptsData.data?.value) {
+          const scriptId = 'injected-header-scripts';
+          if (!document.getElementById(scriptId)) {
+            const container = document.createElement('div');
+            container.id = scriptId;
+            container.style.display = 'none';
+            container.innerHTML = scriptsData.data.value;
+            
+            Array.from(container.childNodes).forEach(node => {
+              if (node.nodeName === 'SCRIPT') {
+                const s = document.createElement('script');
+                const oldS = node as HTMLScriptElement;
+                Array.from(oldS.attributes).forEach(attr => s.setAttribute(attr.name, attr.value));
+                s.innerHTML = oldS.innerHTML;
+                document.head.appendChild(s);
+              } else {
+                document.head.appendChild(node);
+              }
+            });
+          }
         }
       }
 
