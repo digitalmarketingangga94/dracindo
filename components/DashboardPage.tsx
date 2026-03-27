@@ -56,8 +56,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onBack }) => {
         .select('value')
         .eq('key', 'active_keywords')
         .single();
-      if (data && !error) {
-        setInjectedKeywords(JSON.parse(data.value) as string[]);
+      if (data && !error && data.value) {
+        try {
+          const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+          setInjectedKeywords(Array.isArray(parsed) ? parsed : []);
+        } catch (e) {
+          console.error('Failed to parse active keywords:', data.value);
+          setInjectedKeywords([]);
+        }
       } else {
         setInjectedKeywords([]);
       }
