@@ -98,7 +98,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onBack }) => {
 
   const saveToSitemap = async () => {
     setIsUpdatingSitemap(true);
-    const keywordsList = injectedKeywordsText.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+    const keywordsList = injectedKeywordsText
+      .split(/[\n,]/)
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
     try {
       const { error } = await supabase
         .from('site_settings')

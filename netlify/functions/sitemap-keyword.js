@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY || 'placeholder'
-);
+// Resolve Supabase credentials from common environment variable names
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export const handler = async () => {
   let keywords = [];
@@ -15,11 +16,19 @@ export const handler = async () => {
       .eq('key', 'active_keywords')
       .single();
 
-    if (data && !error) {
-      keywords = JSON.parse(data.value);
+    if (error) {
+       console.error('Supabase error fetching keywords:', error.message);
+    } else if (data && data.value) {
+      // Handle both string and array/object values just in case
+      try {
+        keywords = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+      } catch (e) {
+        console.error('JSON parse failed for keywords:', data.value);
+        keywords = [];
+      }
     }
   } catch (e) {
-    console.error('Failed to fetch keywords from Supabase:', e);
+    console.error('Unexpected failure in fetching keywords:', e);
   }
 
   const baseUrl = 'https://dracindo.biz.id';
@@ -27,9 +36,13 @@ export const handler = async () => {
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-  for (const keyword of keywords) {
-    const slug = keyword.toLowerCase().trim().replace(/\s+/g, '-');
-    xml += `  <url>\n    <loc>${baseUrl}/search/${slug}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+  if (Array.isArray(keywords)) {
+    for (const keyword of keywords) {
+      if (typeof keyword === 'string' && keyword.trim()) {
+        const slug = keyword.toLowerCase().trim().replace(/\s+/g, '-');
+        xml += `  <url>\n    <loc>${baseUrl}/search/${slug}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+      }
+    }
   }
 
   xml += `</urlset>`;
@@ -43,3 +56,4 @@ export const handler = async () => {
     body: xml,
   };
 };
+
