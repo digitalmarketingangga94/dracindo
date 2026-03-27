@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
+    "postbuild": "node -e \"const fs=require('fs'); const p='dist/sitemap-keyword.xml'; if(fs.existsSync(p)) fs.unlinkSync(p);\"",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
