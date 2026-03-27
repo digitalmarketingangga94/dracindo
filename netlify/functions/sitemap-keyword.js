@@ -34,7 +34,7 @@ export const handler = async () => {
   const baseUrl = 'https://dracindo.biz.id';
   const today = new Date().toISOString().split('T')[0];
 
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <!-- Search Keyword URLs for SEO -->\n`;
 
   if (Array.isArray(keywords)) {
     for (const keyword of keywords) {
