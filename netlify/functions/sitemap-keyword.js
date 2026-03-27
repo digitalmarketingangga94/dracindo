@@ -8,33 +8,49 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export const handler = async () => {
   let keywords = [];
+  let debugInfo = [];
 
   try {
+    debugInfo.push(`Supabase URL configured: ${SUPABASE_URL !== 'https://placeholder.supabase.co'}`);
+    debugInfo.push(`Supabase Key configured: ${SUPABASE_KEY !== 'placeholder'}`);
+
     const { data, error } = await supabase
       .from('site_settings')
       .select('value')
       .eq('key', 'active_keywords')
-      .single();
+      .maybeSingle(); // Use maybeSingle to avoid error if no row exists
 
     if (error) {
-       console.error('Supabase error fetching keywords:', error.message);
+      debugInfo.push(`Supabase query error: ${error.message}`);
+      console.error('Supabase error fetching keywords:', error.message);
     } else if (data && data.value) {
-      // Handle both string and array/object values just in case
+      debugInfo.push(`Data found in site_settings. Received type: ${typeof data.value}`);
       try {
         keywords = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+        debugInfo.push(`Keywords parsed: ${Array.isArray(keywords) ? keywords.length : 'Not an array'}`);
       } catch (e) {
+        debugInfo.push(`JSON parse error: ${e.message}`);
         console.error('JSON parse failed for keywords:', data.value);
-        keywords = [];
       }
+    } else {
+      debugInfo.push('No row found for key: active_keywords or value is null');
     }
   } catch (e) {
+    debugInfo.push(`Unexpected function error: ${e.message}`);
     console.error('Unexpected failure in fetching keywords:', e);
   }
 
   const baseUrl = 'https://dracindo.biz.id';
   const today = new Date().toISOString().split('T')[0];
 
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <!-- Search Keyword URLs for SEO -->\n`;
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  xml += `  <!-- Diagnostics Information:\n`;
+  debugInfo.forEach(info => {
+    xml += `       - ${info}\n`;
+  });
+  xml += `  -->\n`;
+  xml += `  <!-- Search Keyword URLs for SEO -->\n`;
 
   if (Array.isArray(keywords)) {
     for (const keyword of keywords) {
