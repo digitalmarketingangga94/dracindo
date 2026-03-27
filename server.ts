@@ -32,7 +32,17 @@ async function startServer() {
 
   // Explicitly serve sitemaps to prevent SPA redirect
   app.get('/sitemap.xml', (req, res) => res.sendFile(path.join(process.cwd(), 'public', 'sitemap.xml')));
-  app.get('/sitemap-keyword.xml', (req, res) => res.sendFile(path.join(process.cwd(), 'public', 'sitemap-keyword.xml')));
+  app.get('/sitemap-keyword.xml', async (req, res) => {
+    try {
+      const { handler } = await import('./netlify/functions/sitemap-keyword.js');
+      const response = await handler();
+      res.set(response.headers);
+      res.status(response.statusCode).send(response.body);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
   
   // GET active keywords from JSON sidecar
   app.get('/api/sitemap/keywords', async (req, res) => {

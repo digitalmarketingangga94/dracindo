@@ -1,11 +1,11 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+  process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY || 'placeholder'
 );
 
-exports.handler = async () => {
+export const handler = async () => {
   let keywords = [];
 
   try {
@@ -38,7 +38,7 @@ exports.handler = async () => {
     statusCode: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     },
     body: xml,
   };
